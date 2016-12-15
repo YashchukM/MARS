@@ -1,215 +1,179 @@
 package anaphora.evaluator;
 
-import static anaphora.helper.MARSHelper.getBaseVBForm;
-import static anaphora.helper.MARSHelper.getNPs;
-import static anaphora.helper.MARSHelper.matchedTrees;
-import static anaphora.helper.MARSHelper.isComplexSentence;
-import static anaphora.helper.MARSHelper.isImperative;
-import static anaphora.helper.MARSHelper.isVerb;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import edu.stanford.nlp.trees.Tree;
 
+import java.util.*;
+
+import static anaphora.helper.MARSHelper.*;
+
 public class MARSEvaluator {
-    public static int[] evaluate(List<Tree> listSent, List<Tree> listNP, Tree anaphor, Tree anaphorTree) {
-        int[] scores = new int[listNP.size()];
+    private static final int INDICATOR_WORDS_MARK = 1;
+    private static final int DEFINITENESS_MARK = -1;
+    private static final int GIVENESS_MARK = 1;
+    private static final int COLLOCATION_PATTERN_MARK = 2;
+    private static final int IMMEDIATE_REFERENCE_MARK = 2;
+    private static final int NON_PREPOSITIONAL_NP_MARK = -1;
 
-        scores = evalDefiniteness(listNP, anaphor, scores);
-        scores = evalIndicatorWords(listSent, listNP, anaphor, scores);
-        scores = evalGiveness(listSent, listNP, anaphor, scores);
-        scores = evalCollocationPattern(listSent, listNP, anaphor, anaphorTree, scores);
-        scores = evalImmediateReference(listNP, anaphor, anaphorTree, scores);
-        scores = evalReferentialDistance(listSent, listNP, anaphor, anaphorTree, scores);
-        scores = evalNonPrepositionalNP(listSent, listNP, anaphor, scores);
+    private static Set<String> INDICATOR_WORDS = new HashSet<>(Arrays.asList(
+            "discuss", "present", "illustrate", "identify", "summarize", "examine",
+            "describe", "define", "show", "check", "develop", "review", "report",
+            "outline", "consider", "investigate", "explore", "assess", "analyse",
+            "synthesize", "study", "survey", "deal", "cover"
+    ));
 
-        return scores;
+    private static Set<String> POSSESSIVE_WORDS = new HashSet<>(Arrays.asList(
+            "my", "your", "his", "her", "its", "our", "their"
+    ));
+
+    private static Set<String> DEMONSTRATIVE_WORDS = new HashSet<>(Arrays.asList(
+            "this", "that", "these", "those", "the"
+    ));
+
+    private int[] immediateReferenceScores;
+    private int[] collocationalPatternScores;
+    private int[] indicatorWordsScores;
+
+    private int[] generalScores;
+
+    public int[] evaluate(List<Tree> listSent, List<Tree> listNP, Tree anaphor, Tree anaphorTree) {
+        initScores(listNP.size());
+
+        evalDefiniteness(listNP);
+        evalIndicatorWords(listSent, listNP);
+        evalGiveness(listSent, listNP, anaphor);
+        evalCollocationPattern(listSent, listNP, anaphor, anaphorTree);
+        evalImmediateReference(listNP, anaphor, anaphorTree);
+        evalReferentialDistance(listSent, listNP, anaphor, anaphorTree);
+        evalNonPrepositionalNP(listSent, listNP);
+
+        return generalScores;
     }
 
-    public static int[] evalIndicatorWords(List<Tree> listSent, List<Tree> listNP, Tree anaphor, int[] scores) {
-        Set<String> verbSet = new HashSet<String>(Arrays.asList(
-                "discuss", "present", "illustrate", "identify", "summarize", "examine",
-                "describe", "define", "show", "check", "develop", "review", "report",
-                "outline", "consider", "investigate", "explore", "assess", "analyse",
-                "synthesize", "study", "survey", "deal", "cover"));
-
-        List<Tree> goodNPs = new ArrayList<Tree>();
+    private void evalIndicatorWords(List<Tree> listSent, List<Tree> listNP) {
+        List<Tree> goodNPs = new ArrayList<>();
         for (Tree tree : listSent) {
             // The verb should be converted to the base form
             for (Tree vp : matchedTrees(tree, "VP < (NP [$- VBZ | $- VB | $- VBD])")) {
-                // TODO: may return some trash
                 String verb = getBaseVBForm(vp.firstChild().firstChild().label().value());
-                if (verbSet.contains(verb)) {
+                if (INDICATOR_WORDS.contains(verb)) {
                     goodNPs.add(vp.getChild(1));
                 }
             }
         }
 
-        if (goodNPs.size() != 0) {
-            for (int i = 0; i < listNP.size(); i++) {
-                if (goodNPs.contains(listNP.get(i))) {
-                    scores[i]++;
-                }
-            }
-        }
-
-        return scores;
+        indicatorWordsScores = giveMarks(listNP, goodNPs, generalScores, INDICATOR_WORDS_MARK);
     }
 
     // TODO: add checking is it NN or NNS in NP
-    public static int[] evalDefiniteness(List<Tree> listNP, Tree anaphor, int[] scores) {
-        List<Tree> goodNPs = new ArrayList<Tree>();
-        Set<String> possessives = new HashSet<String>(Arrays.asList(
-                "my", "your", "his", "her", "its", "our", "their"));
-        // Demonstrative words + "the"
-        Set<String> demonstratives = new HashSet<String>(Arrays.asList(
-                "this", "that", "these", "those", "the"));
+    // TODO: ignore rule if there are no definite articles, possessive or demonstrative words in paragraph
+    private void evalDefiniteness(List<Tree> listNP) {
+        List<Tree> badNPs = new ArrayList<>();
 
         for (Tree tree : listNP) {
             // Find all trees with root NP and sons NN right to DT or NN right to PRP$, leave definite
             for (Tree t : matchedTrees(tree, "NP < (NN [$-- /PRP./ | $-- DT])")) {
-                String artWordLabel = t.firstChild().label().value();
-                String artWord = t.firstChild().firstChild().label().value();
-                if ((artWordLabel.equals("PRP$")
-                        && possessives.contains(artWord.toLowerCase()))
-                        || (artWordLabel.equals("DT")
-                        && demonstratives.contains(artWord.toLowerCase()))) {
-                    goodNPs.add(t);
+                String artWordLabel = labelOf(t.firstChild());
+                String artWord = wordOf(t.firstChild());
+                if ((artWordLabel.equals("PRP$") && POSSESSIVE_WORDS.contains(artWord.toLowerCase()))
+                        || (artWordLabel.equals("DT") && DEMONSTRATIVE_WORDS.contains(artWord.toLowerCase()))) {
+                    badNPs.add(t);
                 }
             }
         }
 
         // Definite score 0, indefinite are penalized -1
-        if (goodNPs.size() != 0) {
-            for (int i = 0; i < listNP.size(); i++) {
-                if (!goodNPs.contains(listNP.get(i))) {
-                    scores[i]--;
-                }
-            }
-        }
-
-        return scores;
+        giveMarks(listNP, badNPs, generalScores, DEFINITENESS_MARK);
     }
 
-    public static int[] evalGiveness(List<Tree> listSent, List<Tree> listNP, Tree anaphor, int[] scores) {
-        List<Tree> goodNPs = new ArrayList<Tree>();
+    private void evalGiveness(List<Tree> listSent, List<Tree> listNP, Tree anaphor) {
+        List<Tree> goodNPs = new ArrayList<>();
 
         for (Tree sentence : listSent) {
             if (!isImperative(sentence)) {
                 List<Tree> sentenceNPs = getNPs(sentence, anaphor);
 
                 // Get first NP from sentence
-                if (sentenceNPs.size() != 0) {
+                if (!sentenceNPs.isEmpty()) {
                     goodNPs.add(sentenceNPs.get(0));
                 }
             }
         }
 
-        if (goodNPs.size() != 0) {
-            for (int i = 0; i < listNP.size(); i++) {
-                if (goodNPs.contains(listNP.get(i))) {
-                    scores[i]++;
-                }
-            }
-        }
-
-        return scores;
+        giveMarks(listNP, goodNPs, generalScores, GIVENESS_MARK);
     }
 
-    public static int[] evalCollocationPattern(List<Tree> listSent, List<Tree> listNP, Tree anaphor, Tree parent, int[] scores) {
-        List<Tree> goodNPs = new ArrayList<Tree>();
+    // TODO: logic seems to be incorrect
+    private void evalCollocationPattern(List<Tree> listSent, List<Tree> listNP, Tree anaphor, Tree parent) {
+        List<Tree> goodNPs = new ArrayList<>();
 
+        // One level higher
         Tree[] parents = anaphor.parent(parent).parent(parent).children();
         if (parents.length >= 2) {
             for (int i = 0; i < parents.length - 1; i++) {
-                if (parents[i].value().equals("VB") && parents[i + 1].value().equals("NP")) {
+                if (labelOf(parents[i]).equals("VB") && labelOf(parents[i + 1]).equals("NP")) {
                     for (Tree sent : listSent) {
                         goodNPs.addAll(matchedTrees(sent, "NP $-- VB"));
                     }
-                } else if (parents[i].value().equals("NP")
-                        && parents[i + 1].value().equals("VP") && isVerb(parents[i + 1])) {
+                } else if (labelOf(parents[i]).equals("NP") && labelOf(parents[i + 1]).equals("VP")
+                        && isVerb(parents[i + 1])) {
                     for (Tree sent : listSent) {
                         goodNPs.addAll(matchedTrees(sent, "NP $++ (VP < /VB./)"));
                     }
                 }
             }
         } else {
-            return scores;
+            return;
         }
 
-        if (goodNPs.size() != 0) {
-            for (int i = 0; i < listNP.size(); i++) {
-                if (goodNPs.contains(listNP.get(i))) {
-                    scores[i] += 2;
-                }
-            }
-        }
-
-        return scores;
+        collocationalPatternScores = giveMarks(listNP, goodNPs, generalScores, COLLOCATION_PATTERN_MARK);
     }
 
-    public static int[] evalImmediateReference(List<Tree> listNP, Tree anaphor, Tree parent, int[] scores) {
-        List<Tree> goodNPs = new ArrayList<Tree>();
-
+    protected void evalImmediateReference(List<Tree> listNP, Tree anaphor, Tree parent) {
+        List<Tree> goodNPs = new ArrayList<>();
         List<Tree> patternMatches = matchedTrees(parent, "VP < ((VP < (VB .. (NP !< PRP))) "
                 + "[$+ (CC $+ (VP < (VB .. (NP < PRP)))) | $+ (/,/ $+ (VP < (VB .. (NP < PRP))))])");
-        if (patternMatches.size() != 0) {
-            Tree[] children;
+
+        if (!patternMatches.isEmpty()) {
             for (Tree tree : patternMatches) {
-                children = tree.children();
+                Tree[] children = tree.children();
                 for (int i = 0; i < children.length - 2; i++) {
-                    Tree par = anaphor.parent(parent).parent(parent);
-                    if (children[i].value().equals("VP")
-                            && children[i].getChild(1).value().equals("NP")
-                            && !children[i].getChild(1).firstChild().value().equals("PRP")
-                            && (children[i + 1].value().equals("CC") || children[i + 1].value().equals(","))
-                            && children[i + 2].equals(par)) {
-                        goodNPs.add(children[i].getChild(1));
+                    Tree curChild = children[i], nextChild = children[i + 1];
+                    Tree grandparent = anaphor.parent(parent).parent(parent);
+                    if (labelOf(curChild).equals("VP")
+                            && labelOf(curChild.getChild(1)).equals("NP")
+                            && !labelOf(curChild.getChild(1).firstChild()).equals("PRP")
+                            && (labelOf(nextChild).equals("CC") || labelOf(nextChild).equals(","))
+                            && children[i + 2].equals(grandparent)) {
+                        goodNPs.add(curChild.getChild(1));
                     } else if (i + 4 < children.length
-                            && children[i].value().equals("VP")
-                            && children[i].getChild(1).value().equals("NP")
-                            && !children[i].getChild(1).firstChild().value().equals("PRP")
-                            && (children[i + 1].value().equals("CC") || children[i + 1].value().equals(","))
-                            && !children[i + 2].equals(par)
-                            && children[i + 4].equals(par)) {
-                        goodNPs.add(children[i].getChild(1));
+                            && curChild.value().equals("VP")
+                            && curChild.getChild(1).value().equals("NP")
+                            && !curChild.getChild(1).firstChild().value().equals("PRP")
+                            && (nextChild.value().equals("CC") || nextChild.value().equals(","))
+                            && !children[i + 2].equals(grandparent)
+                            && children[i + 4].equals(grandparent)) {
+                        goodNPs.add(curChild.getChild(1));
                     }
                 }
-
             }
         } else {
-            return scores;
+            return;
         }
 
-        if (goodNPs.size() != 0) {
-            for (int i = 0; i < listNP.size(); i++) {
-                if (goodNPs.contains(listNP.get(i))) {
-                    scores[i] += 2;
-                }
-            }
-        }
-
-        return scores;
+        immediateReferenceScores = giveMarks(listNP, goodNPs, generalScores, IMMEDIATE_REFERENCE_MARK);
     }
 
-    public static int[] evalReferentialDistance(List<Tree> listSent, List<Tree> listNP, Tree anaphor, Tree parent, int[] scores) {
-        List<Tree> goodNPs = new ArrayList<Tree>();
+    private void evalReferentialDistance(List<Tree> listSent, List<Tree> listNP, Tree anaphor, Tree parent) {
+        List<Tree> goodNPs = new ArrayList<>();
 
         if (isComplexSentence(parent)) {
             List<Tree> trees = matchedTrees(parent, "NP $+ VP");
 
             // NPs before anaphor, that don't contain PRP
             for (Tree t : trees) {
-                if (!t.equals(anaphor)) {
-                    if (matchedTrees(t, "PRP").isEmpty()) {
-                        goodNPs.add(t);
-                    }
-                } else {
-                    break;
+                if (t.equals(anaphor)) break;
+                if (matchedTrees(t, "PRP").isEmpty()) {
+                    goodNPs.add(t);
                 }
             }
         }
@@ -219,34 +183,50 @@ public class MARSEvaluator {
             for (int i = listSent.size() - 2; i >= 0; i--) {
                 for (int j = 0; j < listNP.size(); j++) {
                     if (matchedTrees(listSent.get(i), "NP !< PRP").contains(listNP.get(j))) {
-                        scores[j] += est;
+                        generalScores[j] += est;
                     }
-                    if (goodNPs.size() != 0 && goodNPs.contains(listNP.get(j))) {
-                        scores[j] += 2;
+                    if (!goodNPs.isEmpty() && goodNPs.contains(listNP.get(j))) {
+                        generalScores[j] += 2;
                     }
                 }
                 est--;
             }
         }
-
-        return scores;
     }
 
-    public static int[] evalNonPrepositionalNP(List<Tree> listSent, List<Tree> listNP, Tree anaphor, int[] scores) {
-        List<Tree> badNPs = new ArrayList<Tree>();
+    private void evalNonPrepositionalNP(List<Tree> listSent, List<Tree> listNP) {
+        List<Tree> badNPs = new ArrayList<>();
 
         for (Tree sentence : listSent) {
             badNPs.addAll(matchedTrees(sentence, "NP [>> PP & [!< PRP & !< /PRP./]]"));
         }
 
-        if (badNPs.size() != 0) {
-            for (int i = 0; i < listNP.size(); i++) {
-                if (badNPs.contains(listNP.get(i))) {
-                    scores[i]--;
+        immediateReferenceScores = giveMarks(listNP, badNPs, generalScores, NON_PREPOSITIONAL_NP_MARK);
+    }
+
+    protected void initScores(int size) {
+        generalScores = new int[size];
+        immediateReferenceScores = new int[size];
+        collocationalPatternScores = new int[size];
+        indicatorWordsScores = new int[size];
+    }
+
+    private int[] giveMarks(List<Tree> allNPs, List<Tree> markedNPs, int[] generalScores, int mark) {
+        int[] currentMarks = new int[generalScores.length];
+
+        if (!markedNPs.isEmpty()) {
+            for (int i = 0; i < allNPs.size(); i++) {
+                if (markedNPs.contains(allNPs.get(i))) {
+                    generalScores[i] += mark;
+                    currentMarks[i] += mark;
                 }
             }
         }
 
-        return scores;
+        return currentMarks;
+    }
+
+    public int[] getGeneralScores() {
+        return generalScores;
     }
 }

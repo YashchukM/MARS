@@ -1,10 +1,5 @@
 package anaphora.helper;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import anaphora.evaluator.MARSEvaluator;
 import edu.stanford.nlp.ling.HasWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.process.DocumentPreprocessor;
@@ -13,13 +8,16 @@ import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.tregex.TregexMatcher;
 import edu.stanford.nlp.trees.tregex.TregexPattern;
 
-public class MARSHelper {
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+public class MARSHelper {
     public static boolean useGoogle = false;
 
     // Get NP from up to 3 sentences before sentence index
     public static List<Tree> getNPs(int index, List<Tree> treeList, Tree anaphor) {
-        List<Tree> nounPhrasesList = new ArrayList<Tree>();
+        List<Tree> nounPhrasesList = new ArrayList<>();
 
         if (index - 3 >= 0) {
             nounPhrasesList.addAll(getNPs(treeList.get(index - 3), anaphor));
@@ -31,27 +29,22 @@ public class MARSHelper {
             nounPhrasesList.addAll(getNPs(treeList.get(index - 1), anaphor));
         }
         if (index >= 0) {
+            // NP's not dominating other NP's
             List<Tree> trees = matchedTrees(treeList.get(index), "NP !<< NP");
             for (Tree t : trees) {
-                if (!t.firstChild().label().equals("PRP")) {
-                    if (!t.firstChild().equals(anaphor)) {
-                        nounPhrasesList.add(t);
-                    } else {
-                        break;
-                    }
+                if (labelOf(t.firstChild()).equals("PRP") && t.firstChild().equals(anaphor)) {
+                    break;
+                } else if (!labelOf(t.firstChild()).equals("PRP")) {
+                    nounPhrasesList.add(t);
                 }
             }
-
-            //nounPhrasesList.addAll(getNPs(treeList.get(index), anaphor));
         }
 
-        // TODO: add search in this sentence, before the anaphora
         return nounPhrasesList;
     }
 
     // Get NP subtrees from this tree
     public static List<Tree> getNPs(Tree tree, Tree anaphor) {
-        // TODO: add filter to have same gender/number
         String number = getNumber(anaphor.getChild(0).value());
 
         TregexPattern tpattern = TregexPattern.compile("NP [!<< PRP & !<< NP]");
@@ -89,6 +82,7 @@ public class MARSHelper {
 
     /**
      * Checks whether genders of preposition and noun match
+     *
      * @throws IOException
      * @throws InterruptedException
      */
@@ -120,7 +114,8 @@ public class MARSHelper {
 
     /**
      * Get trees by pattern
-     * @param root parent tree root
+     *
+     * @param root    parent tree root
      * @param pattern pattern to match
      * @return list of subtrees of tree with root <code>root</code>
      */
@@ -147,8 +142,8 @@ public class MARSHelper {
     /**
      * Get list of trees, each representing one sentence from file
      */
-    public static List<Tree> getTreeList(LexicalizedParser lexParser, String filename) {
-        List<Tree> treeList = new ArrayList<Tree>();
+    public static List<Tree> getParsedSentences(LexicalizedParser lexParser, String filename) {
+        List<Tree> treeList = new ArrayList<>();
 
         for (List<HasWord> sentence : new DocumentPreprocessor(filename)) {
             Tree parse = lexParser.apply(sentence);
@@ -174,12 +169,11 @@ public class MARSHelper {
     }
 
     /**
-     *
-     * @param index index of sentence in <code>treeList</code>
+     * @param index    index of sentence in <code>treeList</code>
      * @param treeList list of sentences, each represented in <code>Tree</code>
      * @return list of up to 3 sentences before the one on position <code>index</code>
      */
-    public static List<Tree> getSentences(int index, List<Tree> treeList) {
+    public static List<Tree> getPrevThreeSentences(int index, List<Tree> treeList) {
         List<Tree> sentences = new ArrayList<>();
         for (int i = 0; i <= 3; i++) {
             if (index - i >= 0) {
@@ -187,6 +181,18 @@ public class MARSHelper {
             }
         }
         return sentences;
+    }
+
+    public static String labelOf(Tree tree) {
+        return tree.value();
+    }
+
+    public static String wordOf(Tree tree) {
+        return tree.firstChild().toString();
+    }
+
+    public static String stringFormOf(Tree tree) {
+        return tree.getLeaves().stream().map(Tree::value).reduce((s, s2) -> s.concat(" ").concat(s2)).get();
     }
 
     /**
@@ -197,115 +203,8 @@ public class MARSHelper {
         return sentence.getLeaves().get(0).parent(sentence).value().equals("VB");
     }
 
-    public static String chooseAntecedent(List<Tree> listSent, List<Tree> listNP, int[] scores, Tree anaphor, Tree parent) {
-        int occur = 1;
-        int max = -100;
-        int maxInd = 0;
-        List<Tree> trees = new ArrayList<Tree>();
-        for (int i = 0; i < scores.length; i++) {
-            if (scores[i] > max) {
-                trees.clear();
-                max = scores[i];
-                trees.add(listNP.get(i));
-                maxInd = i;
-                occur = 1;
-            } else if (scores[i] == max) {
-                occur++;
-                trees.add(listNP.get(i));
-            }
-        }
-
-        if (occur == 1) {
-            return listNP.get(maxInd).toString();
-        }
-
-        ///////////////////////////////////////////////////////////////////////////////////
-        int[] newScores = new int[trees.size()];
-        newScores = MARSEvaluator.evalImmediateReference(trees, anaphor, parent, newScores);
-
-        occur = 1;
-        max = -100;
-        maxInd = 0;
-        List<Tree> trees1 = new ArrayList<Tree>();
-        //trees.clear();
-        for (int i = 0; i < newScores.length; i++) {
-            if (newScores[i] > max) {
-                trees1.clear();
-                max = scores[i];
-                trees1.add(trees.get(i));
-                maxInd = i;
-                occur = 1;
-            } else if (newScores[i] == max) {
-                occur++;
-                trees1.add(trees.get(i));
-            }
-        }
-
-        if (occur == 1) {
-            return trees.get(maxInd).toString();
-        }
-        //////////////////////////////////////////////////////////////////////////////////
-        newScores = new int[trees1.size()];
-        newScores = MARSEvaluator.evalCollocationPattern(listSent, trees, anaphor, parent, newScores);
-
-        occur = 1;
-        max = -100;
-        maxInd = 0;
-        trees.clear();
-        for (int i = 0; i < newScores.length; i++) {
-            if (newScores[i] > max) {
-                trees.clear();
-                max = scores[i];
-                trees.add(trees1.get(i));
-                maxInd = i;
-                occur = 1;
-            } else if (newScores[i] == max) {
-                occur++;
-                trees.add(trees1.get(i));
-            }
-        }
-
-        if (occur == 1) {
-            return trees1.get(maxInd).toString();
-        }
-        ///////////////////////////////////////////////////////////////////////////////
-
-        newScores = new int[trees.size()];
-        newScores = MARSEvaluator.evalIndicatorWords(listSent, trees, anaphor, newScores);
-
-        occur = 1;
-        max = -100;
-        maxInd = 0;
-        trees1.clear();
-        for (int i = 0; i < newScores.length; i++) {
-            if (newScores[i] > max) {
-                trees1.clear();
-                max = scores[i];
-                trees1.add(trees.get(i));
-                maxInd = i;
-                occur = 1;
-            } else if (newScores[i] == max) {
-                occur++;
-                trees1.add(trees.get(i));
-            }
-        }
-
-        if (occur == 1) {
-            return trees.get(maxInd).toString();
-        }
-        /////////////////////////////////////////////////////////////////////////////////
-
-//		for (int i = 0; i < scores.length; i++) {
-//			System.out.println(listNP.get(i).toString() + " - " + scores[i]);
-//		}
-
-//		System.out.println("Occurs: " + occur);
-//		System.out.println();
-        return trees.get(trees.size() - 1).toString();
-    }
-
     public static boolean isVerb(Tree element) {
-        switch (element.value()) {
+        switch (labelOf(element)) {
             case "VB":
             case "VBD":
             case "VBZ":
@@ -316,10 +215,6 @@ public class MARSHelper {
     }
 
     public static boolean isComplexSentence(Tree sentence) {
-        if (matchedTrees(sentence, "SBAR").isEmpty()) {
-            return false;
-        } else {
-            return true;
-        }
+        return !matchedTrees(sentence, "SBAR").isEmpty();
     }
 }

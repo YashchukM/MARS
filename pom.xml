@@ -7,14 +7,15 @@
     <groupId>org.myas</groupId>
     <artifactId>mars</artifactId>
     <version>0.1</version>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
         </plugins>
@@ -28,11 +29,24 @@
             <version>3.6.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>3.6.0</version>
+            <classifier>models</classifier>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.unbescape/unbescape -->
         <dependency>
             <groupId>org.unbescape</groupId>
             <artifactId>unbescape</artifactId>
             <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
         </dependency>
     </dependencies>
 </project>

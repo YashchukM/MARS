@@ -1,0 +1,39 @@
+The MacBook Pro with Retina display is packed with advanced technologies in a remarkably thin and light design.
+It is both powerful and portable, so you can take it with you and create when you're on the go.
+This guide is for both the 13-inch and 15-inch MacBook Pro with Retina display models.
+When the adapter is connected, an LED on the magnetic connector lights up.
+An amber light shows that your MacBook Pro is charging, and a green light shows that it has a full charge.
+The Dock, at the bottom of the screen, is a convenient place to keep the apps and documents you use frequently.
+You can make the Dock larger or smaller, add or remove items, move it to the left or right side of your screen, or even set it to hide when you're not using it.
+Add an item to the Dock.
+Drag the item and drop it where you want it.
+Place apps to the left of the line in the Dock, and files or folders to the right.
+Remove an item from the Dock.
+Drag it out of the Dock.
+The item isn't removed from your Mac - just from the Dock.
+Share photos using iCloud Photo Sharing.
+Share photos and videos with just the people you choose, and let them add their own photos, video, and comments.
+To get started, click the System Preferences icon in the Dock, click iCloud, then click Photos.
+The trackpad senses how hard you press, giving you more options and greater control with every touch.
+It also provides feedback-if you drag or rotate objects, you feel a subtle vibration when they're aligned, letting you work with greater precision.
+Open an app.
+Click the app's icon in the Dock, or click the Launchpad icon in the Dock and click the app you want.
+You can also search for the app using Spotlight, then open the app directly from your Spotlight search results.
+Organize apps in Launchpad.
+Drag an app onto another app to create a folder.
+Drag more apps to the new folder to add them.
+To remove an app from a folder, just drag it out.
+MacBook Pro is built to go everywhere you go.
+And it's built-in features, along with iCloud and OS X Yosemite, make it easy to bring your content wherever you are.
+Save your files in iCloud Drive.
+Store any file in iCloud Drive, then access it anywhere,from work or home, or on the road.
+To save a file to iCloud Drive, open a Finder window, then drag the file to iCloud Drive in the sidebar.
+You can organize and tag files in iCloud Drive just like the files on your MacBook Pro.
+And when you edit a file in iCloud Drive, your edits show up on any device you use with iCloud.
+With Handoff, you can pick up on one device where you left off on another.
+Work on a presentation on your MacBook Pro, then continue on your iPad.
+Or start an email message on your iPhone, then finish it on your MacBook Pro.
+When your MacBook Pro and devices are near each other, an icon appears in the Dock whenever an activity is being handed off; click it to pick up right where you left of.
+To print the paper, you can stand the printer up or lay it flat.
+To turn on the printer, press the Power button and hold it down for a moment.
+Unwrap the paper, form it and align it, then load it into the drawer.
