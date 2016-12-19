@@ -1,5 +1,9 @@
 package anaphora.helper;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import edu.stanford.nlp.ling.HasWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.process.DocumentPreprocessor;
@@ -7,10 +11,6 @@ import edu.stanford.nlp.process.Morphology;
 import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.tregex.TregexMatcher;
 import edu.stanford.nlp.trees.tregex.TregexPattern;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MARSHelper {
     public static boolean useGoogle = false;
@@ -127,6 +127,20 @@ public class MARSHelper {
         while (tmatcher.find()) {
             Tree subtree = tmatcher.getMatch();
             setTrees.add(subtree);
+        }
+        return setTrees;
+    }
+
+    public static List<Tree> matchedTrees(Tree root, String pattern, String name, Tree result) {
+        TregexPattern tpattern = TregexPattern.compile(pattern);
+        TregexMatcher tmatcher = tpattern.matcher(root);
+
+        List<Tree> setTrees = new ArrayList<>();
+        while (tmatcher.find()) {
+            Tree subtree = tmatcher.getMatch();
+            if (result.equals(tmatcher.getNode(name))) {
+                setTrees.add(subtree);
+            }
         }
         return setTrees;
     }

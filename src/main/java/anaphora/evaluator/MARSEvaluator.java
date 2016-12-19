@@ -1,10 +1,21 @@
 package anaphora.evaluator;
 
+import static anaphora.helper.MARSHelper.getBaseVBForm;
+import static anaphora.helper.MARSHelper.getNPs;
+import static anaphora.helper.MARSHelper.isComplexSentence;
+import static anaphora.helper.MARSHelper.isImperative;
+import static anaphora.helper.MARSHelper.isVerb;
+import static anaphora.helper.MARSHelper.labelOf;
+import static anaphora.helper.MARSHelper.matchedTrees;
+import static anaphora.helper.MARSHelper.wordOf;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import edu.stanford.nlp.trees.Tree;
-
-import java.util.*;
-
-import static anaphora.helper.MARSHelper.*;
 
 public class MARSEvaluator {
     private static final int INDICATOR_WORDS_MARK = 1;
@@ -129,38 +140,14 @@ public class MARSEvaluator {
     }
 
     protected void evalImmediateReference(List<Tree> listNP, Tree anaphor, Tree parent) {
-        List<Tree> goodNPs = new ArrayList<>();
-        List<Tree> patternMatches = matchedTrees(parent, "VP < ((VP < (VB .. (NP !< PRP))) "
-                + "[$+ (CC $+ (VP < (VB .. (NP < PRP)))) | $+ (/,/ $+ (VP < (VB .. (NP < PRP))))])");
+        String name = "anaphor";
+        String anaphoraVP = String.format("(VP < (VB [$. (NP < PRP=%s) | $. (S < (NP < PRP=%s))]))", name, name);
+        String pattern = String.format("NP !< PRP > (VP [$. (CC $. %s) | $. (/,/ $. %s)])", anaphoraVP, anaphoraVP);
+        List<Tree> patternMatches = matchedTrees(parent, pattern, name, anaphor);
 
-        if (!patternMatches.isEmpty()) {
-            for (Tree tree : patternMatches) {
-                Tree[] children = tree.children();
-                for (int i = 0; i < children.length - 2; i++) {
-                    Tree curChild = children[i], nextChild = children[i + 1];
-                    Tree grandparent = anaphor.parent(parent).parent(parent);
-                    if (labelOf(curChild).equals("VP")
-                            && labelOf(curChild.getChild(1)).equals("NP")
-                            && !labelOf(curChild.getChild(1).firstChild()).equals("PRP")
-                            && (labelOf(nextChild).equals("CC") || labelOf(nextChild).equals(","))
-                            && children[i + 2].equals(grandparent)) {
-                        goodNPs.add(curChild.getChild(1));
-                    } else if (i + 4 < children.length
-                            && curChild.value().equals("VP")
-                            && curChild.getChild(1).value().equals("NP")
-                            && !curChild.getChild(1).firstChild().value().equals("PRP")
-                            && (nextChild.value().equals("CC") || nextChild.value().equals(","))
-                            && !children[i + 2].equals(grandparent)
-                            && children[i + 4].equals(grandparent)) {
-                        goodNPs.add(curChild.getChild(1));
-                    }
-                }
-            }
-        } else {
-            return;
-        }
+        if (patternMatches.isEmpty()) return;
 
-        immediateReferenceScores = giveMarks(listNP, goodNPs, generalScores, IMMEDIATE_REFERENCE_MARK);
+        immediateReferenceScores = giveMarks(listNP, patternMatches, generalScores, IMMEDIATE_REFERENCE_MARK);
     }
 
     private void evalReferentialDistance(List<Tree> listSent, List<Tree> listNP, Tree anaphor, Tree parent) {
