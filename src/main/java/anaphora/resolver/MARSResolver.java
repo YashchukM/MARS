@@ -1,4 +1,4 @@
-package anaphora.finder;
+package anaphora.resolver;
 
 import anaphora.evaluator.MARSEvaluator;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;

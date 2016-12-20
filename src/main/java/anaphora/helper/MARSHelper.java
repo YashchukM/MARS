@@ -3,6 +3,7 @@ package anaphora.helper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import edu.stanford.nlp.ling.HasWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
@@ -127,6 +128,20 @@ public class MARSHelper {
         while (tmatcher.find()) {
             Tree subtree = tmatcher.getMatch();
             setTrees.add(subtree);
+        }
+        return setTrees;
+    }
+
+    public static List<Tree> matchedTrees(Tree root, String pattern, String name, Function<Tree, Boolean> function) {
+        TregexPattern tpattern = TregexPattern.compile(pattern);
+        TregexMatcher tmatcher = tpattern.matcher(root);
+
+        List<Tree> setTrees = new ArrayList<>();
+        while (tmatcher.find()) {
+            Tree subtree = tmatcher.getMatch();
+            if (function.apply(tmatcher.getNode(name))) {
+                setTrees.add(subtree);
+            }
         }
         return setTrees;
     }

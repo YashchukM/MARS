@@ -1,6 +1,6 @@
 import java.io.IOException;
 
-import anaphora.finder.MARSResolver;
+import anaphora.resolver.MARSResolver;
 
 
 public class Manager {
