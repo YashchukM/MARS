@@ -20,20 +20,18 @@ public class MARSHelper {
     public static List<Tree> getNPs(int index, List<Tree> treeList, Tree anaphor) {
         List<Tree> nounPhrasesList = new ArrayList<>();
 
-        if (index - 3 >= 0) {
-            nounPhrasesList.addAll(getNPs(treeList.get(index - 3), anaphor));
+        for (int i = 1; i <= 3; i++) {
+            if (index - i >= 0) {
+                nounPhrasesList.addAll(getNPs(treeList.get(index - i), anaphor));
+            }
         }
-        if (index - 2 >= 0) {
-            nounPhrasesList.addAll(getNPs(treeList.get(index - 2), anaphor));
-        }
-        if (index - 1 >= 0) {
-            nounPhrasesList.addAll(getNPs(treeList.get(index - 1), anaphor));
-        }
+
         if (index >= 0) {
             // NP's not dominating other NP's
             List<Tree> trees = matchedTrees(treeList.get(index), "NP !<< NP");
             for (Tree t : trees) {
-                if (labelOf(t.firstChild()).equals("PRP") && t.firstChild().equals(anaphor)) {
+                // comparision operator and not equals(), there could be few equal to anaphor PRPs
+                if (labelOf(t.firstChild()).equals("PRP") && t.firstChild() == anaphor) {
                     break;
                 } else if (!labelOf(t.firstChild()).equals("PRP")) {
                     nounPhrasesList.add(t);

@@ -1,16 +1,14 @@
 package anaphora.evaluator;
 
 
-import static anaphora.helper.MARSHelper.getBaseVBForm;
-import static anaphora.helper.MARSHelper.matchedTrees;
-import static anaphora.helper.MARSHelper.wordOf;
+import anaphora.domain.AnaphorContext;
+import edu.stanford.nlp.trees.Tree;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
-import edu.stanford.nlp.trees.Tree;
+import static anaphora.helper.MARSHelper.*;
 
 public class IndicatorWordsEvaluator extends BasicEvaluator {
     public static final int MARK = 1;
@@ -26,10 +24,10 @@ public class IndicatorWordsEvaluator extends BasicEvaluator {
     );
 
     @Override
-    public int[] evaluate(List<Tree> candidateSentences, List<Tree> candidates, Tree anaphor) {
+    public int[] evaluate(AnaphorContext anaphorContext) {
         Set<Tree> marked = new HashSet<>();
 
-        for (Tree candidateSentence : candidateSentences) {
+        for (Tree candidateSentence : anaphorContext.getCandidateSentences()) {
             marked.addAll(
                     matchedTrees(
                             candidateSentence, PATTERN, STANDARD_MATCH_NAME,
@@ -38,6 +36,6 @@ public class IndicatorWordsEvaluator extends BasicEvaluator {
             );
         }
 
-        return giveScores(candidates, marked, MARK);
+        return giveScores(anaphorContext.getCandidates(), marked, MARK);
     }
 }
