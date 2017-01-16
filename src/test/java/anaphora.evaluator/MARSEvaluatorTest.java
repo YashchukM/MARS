@@ -16,30 +16,17 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
+import anaphora.domain.AnaphorInfo;
 import anaphora.resolver.MARSResolver;
 import anaphora.helper.MARSHelper;
 import edu.stanford.nlp.trees.Tree;
 
 public class MARSEvaluatorTest {
-    MARSEvaluator evaluator;
+    private MARSEvaluator evaluator;
 
     @Before
     public void init() {
         evaluator = new MARSEvaluator();
-    }
-
-    @Test
-    public void testEvalImmediateReference() {
-        String sentence = "To print the paper, you can stand the printer up or lay it flat.";
-        Tree sentenceTree = MARSResolver.PARSER.parse(sentence);
-        Tree anaphor = Tree.valueOf("(PRP it)");
-        List<Tree> candidates = MARSHelper.getNPs(0, Collections.singletonList(sentenceTree), anaphor);
-        int[] resultScores = {0, 2};
-
-        evaluator.initScores(candidates.size());
-        evaluator.evalImmediateReference(candidates, anaphor, sentenceTree);
-
-        assertTrue(Arrays.equals(resultScores, evaluator.getGeneralScores()));
     }
 
     @Test

@@ -4,13 +4,22 @@ import edu.stanford.nlp.trees.Tree;
 
 import java.util.List;
 
-public class AnaphorContext {
+public class AnaphorInfo {
     private Tree anaphor;
+    private Tree anaphorSentence;
+
     private List<Tree> candidateSentences;
     private List<Tree> candidates;
 
-    public AnaphorContext(Tree anaphor, List<Tree> candidateSentences, List<Tree> candidates) {
+    public AnaphorInfo(Tree anaphor, List<Tree> candidateSentences, List<Tree> candidates) {
         this.anaphor = anaphor;
+        this.candidateSentences = candidateSentences;
+        this.candidates = candidates;
+    }
+
+    public AnaphorInfo(Tree anaphor, Tree anaphorSentence, List<Tree> candidateSentences, List<Tree> candidates) {
+        this.anaphor = anaphor;
+        this.anaphorSentence = anaphorSentence;
         this.candidateSentences = candidateSentences;
         this.candidates = candidates;
     }
@@ -37,5 +46,13 @@ public class AnaphorContext {
 
     public void setCandidates(List<Tree> candidates) {
         this.candidates = candidates;
+    }
+
+    public Tree getAnaphorSentence() {
+        return anaphorSentence;
+    }
+
+    public void setAnaphorSentence(Tree anaphorSentence) {
+        this.anaphorSentence = anaphorSentence;
     }
 }

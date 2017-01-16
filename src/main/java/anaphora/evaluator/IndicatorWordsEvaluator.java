@@ -1,7 +1,6 @@
 package anaphora.evaluator;
 
-
-import anaphora.domain.AnaphorContext;
+import anaphora.domain.AnaphorInfo;
 import edu.stanford.nlp.trees.Tree;
 
 import java.util.Arrays;
@@ -12,7 +11,7 @@ import static anaphora.helper.MARSHelper.*;
 
 public class IndicatorWordsEvaluator extends BasicEvaluator {
     public static final int MARK = 1;
-    public static final String PATTERN = String.format("NP > VP $- @VB=%s", STANDARD_MATCH_NAME);
+    public static final String PATTERN = getPattern();
 
     public static final Set<String> INDICATOR_WORDS = new HashSet<>(
             Arrays.asList(
@@ -24,10 +23,10 @@ public class IndicatorWordsEvaluator extends BasicEvaluator {
     );
 
     @Override
-    public int[] evaluate(AnaphorContext anaphorContext) {
+    public int[] evaluate(AnaphorInfo anaphorInfo) {
         Set<Tree> marked = new HashSet<>();
 
-        for (Tree candidateSentence : anaphorContext.getCandidateSentences()) {
+        for (Tree candidateSentence : anaphorInfo.getCandidateSentences()) {
             marked.addAll(
                     matchedTrees(
                             candidateSentence, PATTERN, STANDARD_MATCH_NAME,
@@ -36,6 +35,10 @@ public class IndicatorWordsEvaluator extends BasicEvaluator {
             );
         }
 
-        return giveScores(anaphorContext.getCandidates(), marked, MARK);
+        return giveScores(anaphorInfo.getCandidates(), marked, MARK);
+    }
+
+    private static String getPattern() {
+        return String.format("NP > VP $- @VB=%s", STANDARD_MATCH_NAME);
     }
 }

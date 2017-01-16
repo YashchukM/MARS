@@ -130,6 +130,13 @@ public class MARSHelper {
         return setTrees;
     }
 
+    /**
+     * @param root     parent tree root
+     * @param pattern  pattern to match
+     * @param name     label of node to match (in pattern)
+     * @param function filter function
+     * @return list of subtrees of tree with root <code>root</code>
+     */
     public static List<Tree> matchedTrees(Tree root, String pattern, String name, Function<Tree, Boolean> function) {
         TregexPattern tpattern = TregexPattern.compile(pattern);
         TregexMatcher tmatcher = tpattern.matcher(root);
