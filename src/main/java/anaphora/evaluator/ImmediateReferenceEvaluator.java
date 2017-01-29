@@ -9,7 +9,7 @@ import anaphora.domain.AnaphorInfo;
 import edu.stanford.nlp.trees.Tree;
 
 public class ImmediateReferenceEvaluator extends BasicEvaluator {
-    private static final int MARK = 2;
+    public static final int MARK = 2;
     public static final String PATTERN = getPattern();
 
     @Override
@@ -20,8 +20,6 @@ public class ImmediateReferenceEvaluator extends BasicEvaluator {
                 anaphorInfo.getAnaphorSentence(), PATTERN, STANDARD_MATCH_NAME,
                 tree -> tree.equals(anaphorInfo.getAnaphor())
         ));
-
-        if (marked.isEmpty()) return new int[] {anaphorInfo.getCandidates().size()};
 
         return giveScores(anaphorInfo.getCandidates(), marked, MARK);
     }

@@ -31,6 +31,7 @@ public class MARSHelper {
             List<Tree> trees = matchedTrees(treeList.get(index), "NP !<< NP");
             for (Tree t : trees) {
                 // comparision operator and not equals(), there could be few equal to anaphor PRPs
+                // TODO: comparision doen't work, change the way
                 if (labelOf(t.firstChild()).equals("PRP") && t.firstChild() == anaphor) {
                     break;
                 } else if (!labelOf(t.firstChild()).equals("PRP")) {
@@ -250,5 +251,13 @@ public class MARSHelper {
 
     public static boolean isComplexSentence(Tree sentence) {
         return !matchedTrees(sentence, "SBAR").isEmpty();
+    }
+
+    public static boolean isAnaphorPRP(Tree phrase) {
+        return "PRP".equals(labelOf(phrase)) && !("you".equals(wordOf(phrase)) || "You".equals(wordOf(phrase)));
+    }
+
+    public static boolean isAnyPRP(Tree phrase) {
+        return "PRP".equals(labelOf(phrase));
     }
 }
