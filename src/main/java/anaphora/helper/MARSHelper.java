@@ -260,4 +260,28 @@ public class MARSHelper {
     public static boolean isAnyPRP(Tree phrase) {
         return "PRP".equals(labelOf(phrase));
     }
+
+    public static boolean isYouPRP(Tree candidate) {
+        return "You".equals(wordOf(candidate.firstChild())) || "you".equals(wordOf(candidate.firstChild()));
+    }
+
+    public static PronounNumber numberOf(Tree tree) {
+        String prp = wordOf(tree.firstChild());
+        prp = prp.toLowerCase();
+        String singular = "(i|me|she|her|he|him|it)";
+        String plural = "(we|us|they|them)";
+        String both = "(you)";
+        if (prp.matches(singular)) {
+            return PronounNumber.Singular;
+        } else if (prp.matches(plural)) {
+            return PronounNumber.Plural;
+        } else if (prp.matches(both)) {
+            return PronounNumber.Both;
+        }
+        throw new IllegalArgumentException();
+    }
+
+    public enum PronounNumber {
+        Singular, Plural, Both
+    }
 }

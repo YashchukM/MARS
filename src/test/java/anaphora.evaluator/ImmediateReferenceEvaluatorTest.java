@@ -46,6 +46,7 @@ public class ImmediateReferenceEvaluatorTest {
     @Test
     public void testPattern() {
         Tree sentenceTree = anaphorInfo.getAnaphorSentence();
+        sentenceTree.pennPrint();
         Tree anaphor = anaphorInfo.getAnaphor();
         Tree result = Tree.valueOf("(NP (DT the) (NN printer))");
 

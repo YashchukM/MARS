@@ -1,10 +1,12 @@
 package anaphora.helper;
 
+import static anaphora.helper.MARSHelper.isYouPRP;
 import static anaphora.helper.MARSHelper.matchedTrees;
 import static anaphora.helper.MARSHelper.wordOf;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
@@ -92,16 +94,7 @@ public class AnaphorIterator implements Iterator<AnaphorInfo> {
 
     private void filterInfo() {
         for (AnaphorInfo anaphorInfo : anaphorInfos) {
-            for (Iterator<Tree> iterator = anaphorInfo.getCandidates().iterator(); iterator.hasNext(); ) {
-                Tree candidate = iterator.next();
-                if (isYouPRP(candidate)) {
-                    iterator.remove();
-                }
-            }
+            anaphorInfo.getCandidates().removeIf(t -> isYouPRP(t));
         }
-    }
-
-    private boolean isYouPRP(Tree candidate) {
-        return "You".equals(wordOf(candidate.firstChild())) || "you".equals(wordOf(candidate.firstChild()));
     }
 }
